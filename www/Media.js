@@ -51,6 +51,7 @@ var Media = function(src, successCallback, errorCallback, statusCallback) {
 };
 
 // Media messages
+Media.MEDIA_LEVEL_METER = 0;
 Media.MEDIA_STATE = 1;
 Media.MEDIA_DURATION = 2;
 Media.MEDIA_POSITION = 3;
@@ -180,6 +181,9 @@ Media.onStatus = function(id, msgType, value) {
                 break;
             case Media.MEDIA_POSITION :
                 media._position = Number(value);
+                break;
+            case Media.MEDIA_LEVEL_METER :
+                media._levelMeter = value;
                 break;
             default :
                 console.error && console.error("Unhandled Media.onStatus :: " + msgType);

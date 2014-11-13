@@ -20,6 +20,7 @@
 #import <Foundation/Foundation.h>
 #import <AudioToolbox/AudioServices.h>
 #import <AVFoundation/AVFoundation.h>
+#import <CoreAudio/CoreAudioTypes.h>
 
 #import <Cordova/CDVPlugin.h>
 
@@ -41,6 +42,7 @@ enum CDVMediaStates {
 typedef NSUInteger CDVMediaStates;
 
 enum CDVMediaMsg {
+    MEDIA_LEVEL_METER = 0,
     MEDIA_STATE = 1,
     MEDIA_DURATION = 2,
     MEDIA_POSITION = 3,
@@ -59,7 +61,10 @@ typedef NSUInteger CDVMediaMsg;
 {
     NSString* mediaId;
 }
+
+
 @property (nonatomic, copy) NSString* mediaId;
+
 @end
 
 @interface CDVAudioFile : NSObject
@@ -84,10 +89,14 @@ typedef NSUInteger CDVMediaMsg;
 {
     NSMutableDictionary* soundCache;
     AVAudioSession* avSession;
+    NSTimer* levelTimer;
 }
+
 @property (nonatomic, strong) NSMutableDictionary* soundCache;
 @property (nonatomic, strong) AVAudioSession* avSession;
+ 
 
+- (void)levelTimerCallback:(NSTimer*)timer;
 - (void)startPlayingAudio:(CDVInvokedUrlCommand*)command;
 - (void)pausePlayingAudio:(CDVInvokedUrlCommand*)command;
 - (void)stopPlayingAudio:(CDVInvokedUrlCommand*)command;

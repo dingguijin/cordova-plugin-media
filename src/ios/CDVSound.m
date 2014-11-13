@@ -26,7 +26,8 @@
 #define HTTP_SCHEME_PREFIX @"http://"
 #define HTTPS_SCHEME_PREFIX @"https://"
 #define CDVFILE_PREFIX @"cdvfile://"
-#define RECORDING_WAV @"wav"
+/* #define RECORDING_WAV @"wav" */
+#define RECORDING_WAV @"m4a"
 
 @implementation CDVSound
 
@@ -253,7 +254,7 @@
 {
     NSMutableDictionary* errorDict = [NSMutableDictionary dictionaryWithCapacity:2];
 
-    [errorDict setObject:[NSNumber numberWithUnsignedInt:code] forKey:@"code"];
+    [errorDict setObject:[NSNumber numberWithUnsignedInteger:code] forKey:@"code"];
     [errorDict setObject:message ? message:@"" forKey:@"message"];
     return [errorDict JSONString];
 }
@@ -555,7 +556,10 @@
             }
             // get the audioSession and set the category to allow recording when device is locked or ring/silent switch engaged
             if ([self hasAudioSession]) {
-                [self.avSession setCategory:AVAudioSessionCategoryRecord error:nil];
+                if (![self.avSession.category isEqualToString:AVAudioSessionCategoryPlayAndRecord]) {
+                    [self.avSession setCategory:AVAudioSessionCategoryRecord error:nil];
+                }
+
                 if (![self.avSession setActive:YES error:&error]) {
                     // other audio with higher priority that does not allow mixing could cause this to fail
                     errorMsg = [NSString stringWithFormat:@"Unable to record audio: %@", [error localizedFailureReason]];
@@ -566,8 +570,15 @@
                 }
             }
             
+            // custom settings for m4a
+            NSDictionary *recordSettings = [NSDictionary dictionaryWithObjectsAndKeys:
+                                            [NSNumber numberWithInt: kAudioFormatMPEG4AAC], AVFormatIDKey,
+                                            [NSNumber numberWithFloat:8000.0], AVSampleRateKey,
+                                            [NSNumber numberWithInt: 1], AVNumberOfChannelsKey,
+                                            nil];
             // create a new recorder for each start record
-            audioFile.recorder = [[CDVAudioRecorder alloc] initWithURL:audioFile.resourceURL settings:nil error:&error];
+            /* audioFile.recorder = [[CDVAudioRecorder alloc] initWithURL:audioFile.resourceURL settings:nil error:&error]; */
+            audioFile.recorder = [[CDVAudioRecorder alloc] initWithURL:audioFile.resourceURL settings:recordSettings error:&error];
             
             bool recordingSuccess = NO;
             if (error == nil) {
@@ -576,6 +587,9 @@
                 recordingSuccess = [audioFile.recorder record];
                 if (recordingSuccess) {
                     NSLog(@"Started recording audio sample '%@'", audioFile.resourcePath);
+                    NSLog(@">>>>>>>>>>>>>>%@", mediaId);
+                    audioFile.recorder.meteringEnabled = YES;
+                    levelTimer = [NSTimer scheduledTimerWithTimeInterval: 0.03 target: self selector: @selector(levelTimerCallback:) userInfo: audioFile repeats: YES];
                     jsString = [NSString stringWithFormat:@"%@(\"%@\",%d,%d);", @"cordova.require('org.apache.cordova.media.Media').onStatus", mediaId, MEDIA_STATE, MEDIA_RUNNING];
                     [self.commandDelegate evalJs:jsString];
                 }
@@ -628,6 +642,24 @@
     }
 }
 
+
+- (void)levelTimerCallback:(NSTimer*)timer
+{
+    
+    CDVAudioFile* audioFile = timer.userInfo;
+    NSLog(@"audio file: %p", audioFile);
+    if (audioFile != nil) {
+        [audioFile.recorder updateMeters];
+        NSLog(@"Average input: %f Peak input: %f", [audioFile.recorder averagePowerForChannel:0], [audioFile.recorder peakPowerForChannel:0]);
+        float levelMeter = [audioFile.recorder peakPowerForChannel:0];
+        NSString* jsString = [NSString stringWithFormat:@"%@(\"%@\",%d,%f);", @"cordova.require('org.apache.cordova.media.Media').onStatus", audioFile.recorder.mediaId, MEDIA_LEVEL_METER, levelMeter];
+        [self.commandDelegate evalJs:jsString];
+    } else {
+        NSLog(@"audioFile is nil");
+    }
+}
+
+
 - (void)stopRecordingAudio:(CDVInvokedUrlCommand*)command
 {
     NSString* mediaId = [command.arguments objectAtIndex:0];
@@ -638,6 +670,7 @@
     if ((audioFile != nil) && (audioFile.recorder != nil)) {
         NSLog(@"Stopped recording audio sample '%@'", audioFile.resourcePath);
         [audioFile.recorder stop];
+        [levelTimer invalidate];
         // no callback - that will happen in audioRecorderDidFinishRecording
     }
     // ignore if no media recording
