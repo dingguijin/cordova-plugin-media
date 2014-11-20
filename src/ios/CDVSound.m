@@ -573,6 +573,8 @@
             // custom settings for m4a
             NSDictionary *recordSettings = [NSDictionary dictionaryWithObjectsAndKeys:
                                             [NSNumber numberWithInt: kAudioFormatMPEG4AAC], AVFormatIDKey,
+                                            [NSNumber numberWithInt: AVAudioQualityMin], AVEncoderAudioQualityKey,
+                                            [NSNumber numberWithInt: 8000], AVEncoderBitRateKey,
                                             [NSNumber numberWithFloat:8000.0], AVSampleRateKey,
                                             [NSNumber numberWithInt: 1], AVNumberOfChannelsKey,
                                             nil];
