@@ -60,6 +60,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
     private static final String LOG_TAG = "AudioPlayer";
 
     // AudioPlayer message ids
+    private static int MEDIA_LEVEL_METER = 0;
     private static int MEDIA_STATE = 1;
     private static int MEDIA_DURATION = 2;
     private static int MEDIA_POSITION = 3;
@@ -86,7 +87,7 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
     private MediaPlayer player = null;      // Audio player object
     private boolean prepareOnly = true;     // playback after file prepare flag
     private int seekOnPrepared = 0;     // seek to this location once media is prepared
-
+    
     /**
      * Constructor.
      *
@@ -293,6 +294,25 @@ public class AudioPlayer implements OnCompletionListener, OnPreparedListener, On
         else {
             return -1;
         }
+    }
+
+    /**
+     * read Volume level
+     * @param id				The id of the audio player
+     */
+    public int readAudioLevel() {
+        int amp = this.recorder.getMaxAmplitude();
+        double p0 = 0.0002;
+        double p = amp / 51805.5336;
+        double x = 20 * Math.log(p / p0);
+        int level = (int) (x * 10000.00 / 69.00);
+        if ( level > 10000) {
+            level = 10000;
+        } else if ( level < 0) {
+            level = 0;
+        }
+        //sendStatusChange(MEDIA_LEVEL_METER, null, level);
+        return level;
     }
 
     /**

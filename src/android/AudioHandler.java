@@ -138,6 +138,11 @@ public class AudioHandler extends CordovaPlugin {
             messageChannel = callbackContext;
             return true;
         }
+        else if (action.equals("readAudioLevel")) {
+            float f = this.readAudioLevel(args.getString(0));
+            callbackContext.sendPluginResult(new PluginResult(status, f));
+            return true;
+        }
         else { // Unrecognized action.
             return false;
         }
@@ -245,7 +250,7 @@ public class AudioHandler extends CordovaPlugin {
         AudioPlayer audio = getOrCreatePlayer(id, file);
         audio.startRecording(file);
     }
-
+    
     /**
      * Stop recording and save to the file specified when recording started.
      * @param id				The id of the audio player
@@ -314,6 +319,19 @@ public class AudioHandler extends CordovaPlugin {
         return -1;
     }
 
+    /**
+     * Read current level meter
+     * @param id				The id of the audio player
+     * @return 					level meter 
+     */
+    public int readAudioLevel(String id) {
+        AudioPlayer audio = this.players.get(id);
+        if (audio != null) {
+            return (audio.readAudioLevel());
+        }
+        return 0;
+    }
+    
     /**
      * Get the duration of the audio file.
      * @param id				The id of the audio player

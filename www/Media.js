@@ -47,6 +47,7 @@ var Media = function(src, successCallback, errorCallback, statusCallback) {
     this.statusCallback = statusCallback;
     this._duration = -1;
     this._position = -1;
+    this._levelMeter = 0;
     exec(null, this.errorCallback, "Media", "create", [this.id, this.src]);
 };
 
@@ -84,6 +85,7 @@ Media.prototype.stop = function() {
     var me = this;
     exec(function() {
         me._position = 0;
+        me._levelMeter = 0;
     }, this.errorCallback, "Media", "stopPlayingAudio", [this.id]);
 };
 
@@ -123,6 +125,14 @@ Media.prototype.getCurrentPosition = function(success, fail) {
         me._position = p;
         success(p);
     }, fail, "Media", "getCurrentPositionAudio", [this.id]);
+};
+
+Media.prototype.readAudioLevel = function(success, fail) {
+    var me = this;
+    exec(function(p) {
+        me._levelMeter = p;
+        success(p);
+    }, fail, "Media", "readAudioLevel", [this.id]);
 };
 
 /**
